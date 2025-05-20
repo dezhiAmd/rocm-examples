@@ -27,6 +27,19 @@
 #include <iostream>
 #include <vector>
 
+
+__global__ void sqrt_kernel(float* output, const float* input, const int width) {
+    // Get the two-dimensional global thread index
+    const unsigned int x = blockDim.x * blockIdx.x + threadIdx.x;
+    const unsigned int y = blockDim.y * blockIdx.y + threadIdx.y;
+
+     if (x < width) {
+         if (y < width)
+             output[x * width + y] = sqrtf(input[x * width + y]);
+     }
+}
+
+
 /// \brief Kernel function to perform matrix transpose using shared memory of constant size
 template<unsigned int Width>
 __global__ void matrix_transpose_static_shared(float* out, const float* in)
@@ -72,7 +85,7 @@ __global__ void matrix_transpose_dynamic_shared(float* out, const float* in, con
 int main()
 {
     // Dimension of the input square matrix is width x width
-    constexpr unsigned int width = 32;
+    constexpr unsigned int width = 64;
     constexpr unsigned int size  = width * width;
 
     // Size in bytes for memory management
@@ -146,7 +159,7 @@ int main()
            streams[0]>>>(d_transpose_matrix[0], d_in[0]);
 
     // Launch kernel with stream[1]
-    matrix_transpose_dynamic_shared<<<dim3(width / threads_per_block_x,
+    sqrt_kernel<<<dim3(width / threads_per_block_x,
                                            width / threads_per_block_y),
                                       dim3(threads_per_block_x, threads_per_block_y),
                                       sizeof(float) * width * width,
